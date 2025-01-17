@@ -31,8 +31,9 @@ class MSSQL(VectorDB):
         log.info("db_case_config: " + str(db_case_config))
 
         log.info(f"Connecting to MSSQL...")
+        SQL_ATTR_PACKET_SIZE = 112
         #log.info(self.db_config['connection_string'])
-        cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;')     
+        cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;', attrs_before={ SQL_ATTR_PACKET_SIZE : 16384 })     
         cursor = cnxn.cursor()
 
         log.info(f"Creating schema...")
@@ -91,7 +92,8 @@ class MSSQL(VectorDB):
             
     @contextmanager
     def init(self) -> Generator[None, None, None]:
-        cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;')     
+        SQL_ATTR_PACKET_SIZE = 112
+        cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;', attrs_before={ SQL_ATTR_PACKET_SIZE : 16384 })     
         self.cnxn = cnxn    
         cnxn.autocommit = True
         self.cursor = cnxn.cursor()
@@ -152,7 +154,6 @@ class MSSQL(VectorDB):
             log.warning(f"Failed to insert data into vector table ([{self.schema_name}].[{self.table_name}]), error: {e}")   
             return 0, e
     
-    @staticmethod
     def search_embedding(        
         self,
         query: list[float],
@@ -165,48 +166,52 @@ class MSSQL(VectorDB):
         #efSearch = search_param["efSearch"]
         #log.info(f'Query top:{k} metric:{metric_fun} filters:{filters} params: {search_param} timeout:{timeout}...')
         cursor = self.cursor
-        if filters:
+        log.info("Here")
+        #if filters:
             # select top(?) v.id from [{self.schema_name}].[{self.table_name}] v where v.id >= ? order by vector_distance(?, cast(? as varchar({self.dim})), v.[vector])
-            cursor.execute(f"""        
-                select 
-                    t.id
-                from
-                    vector_search(
-                        table = [{self.schema_name}].[{self.table_name}] AS t, 
-                        column = [vector], 
-                        similar_to = ?,
-                        metric = '{metric_function}', 
-                        top_n = ?
-                    ) AS s
-                where
-                    v.id >= ?                
-                """, 
-                json.dumps(query),                      
-                k,                    
-                int(filters.get('id')),                                  
-                )
-        else:
+        #    cursor.execute(f"""        
+        #        select 
+        #            t.id
+        #        from
+        #           vector_search(
+        #                table = [{self.schema_name}].[{self.tablejson.dumps(query),_name}] AS t, 
+        #                column = [vector], 
+        #                similar_to = ?,
+        #                metric = '{metric_function}', 
+        #                top_n = ?
+        #            ) AS s
+        #        where
+        #            v.id >= ?                
+        #        """, 
+        #        json.dumps(query),                      
+        #        k,                    
+        #        int(filters.get('id')),                                  
+        #        )
+        #else:
             # select top(?) v.id from [{self.schema_name}].[{self.table_name}] v order by vector_distance(?, cast(? as vector({self.dim})), v.[vector]) 
-            cursor.execute(f"""
-                declare @v vector({self.dim}) = ?;        
-                select 
-                    t.id
-                from
-                    vector_search(
-                        table = [{self.schema_name}].[{self.table_name}] AS t, 
-                        column = [vector], 
-                        similar_to = @v,
-                        metric = '{metric_function}', 
-                        top_n = ?
-                    ) AS s
-                order by
-                    t.id   
-                """, 
-                json.dumps(query),      
-                k,                                                      
-                )
+        #    cursor.execute(f"""
+        #        declare @v vector({self.dim}) = ?;        
+        #        select 
+        #            t.id
+        #        from
+        #            vector_search(
+        #                table = [{self.schema_name}].[{self.table_name}] AS t, 
+        #                column = [vector], 
+        #                similar_to = @v,
+        #                metric = '{metric_function}', 
+        #                top_n = ?
+        #            ) AS s
+        #        order by
+        #            t.id   
+        #        """, 
+        #        json.dumps(query),      
+        #        k,                                                      
+        #        )
+        cursor.execute(' SELECT ? AS id ', json.dumps(query))
+        #cursor.execute('SELECT 1 as id')
         rows = cursor.fetchall()
         res = [row.id for row in rows]
+        log.info(res)
         return res
         
         
