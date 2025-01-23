@@ -24,7 +24,7 @@ def main():
 
     allResults = benchmark_runner.get_results()
 
-    st.title("Vector Database Benchmark")
+    st.title("Vector Database Benchmark WITH CHANGES")
     st.caption(
         "Except for zillizcloud-v2024.1, which was tested in _January 2024_, all other tests were completed before _August 2023_."
     )
