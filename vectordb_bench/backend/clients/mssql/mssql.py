@@ -30,7 +30,7 @@ class MSSQL(VectorDB):
 
         log.info("db_case_config: " + str(db_case_config))
 
-        log.info(f"Connecting to MSSQL...")
+        log.info(f"Connecting to MSSQL... here")
         #log.info(self.db_config['connection_string'])
         cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;')     
         cursor = cnxn.cursor()
@@ -95,39 +95,7 @@ class MSSQL(VectorDB):
         self.cnxn = cnxn    
         cnxn.autocommit = True
         self.cursor = cnxn.cursor()
-
-        if filters:
-            self.vector_query = f"""        
-                select 
-                    t.id
-                from
-                    vector_search(
-                        table = [{self.schema_name}].[{self.table_name}] AS t, 
-                        column = [vector], 
-                        similar_to = ?,
-                        metric = '{metric_function}', 
-                        top_n = ?
-                    ) AS s
-                where
-                    v.id >= ?                
-                """
-        else:
-            self.vector_query = f"""
-                declare @v vector({self.dim}) = ?;        
-                select 
-                    t.id
-                from
-                    vector_search(
-                        table = [{self.schema_name}].[{self.table_name}] AS t, 
-                        column = [vector], 
-                        similar_to = @v,
-                        metric = '{metric_function}', 
-                        top_n = ?
-                    ) AS s
-                order by
-                    t.id   
-                """
-
+        self.first_run = True
 
         try:
             yield
@@ -198,10 +166,24 @@ class MSSQL(VectorDB):
         #efSearch = search_param["efSearch"]
         #log.info(f'Query top:{k} metric:{metric_fun} filters:{filters} params: {search_param} timeout:{timeout}...')
         cursor = self.cursor
+        if self.first_run == True:
+            self.first_run = False
+            self.vector_query = f"""
+                declare @v vector({self.dim}) = ?;
+                select t.id from vector_search(
+                    table = [{self.schema_name}].[{self.table_name}] AS t,
+                    column = [vector],
+                    similar_to = @v,
+                    metric = '{metric_function}', 
+                    top_n = ?
+                ) AS s
+                order by t.id 
+            """
+        print(id(self.vector_query))
         if filters:
-            cursor.execute(self.query, json.dumps(query), k, int(filters.get('id')),)
+            cursor.execute(self.vector_query, json.dumps(query), k, int(filters.get('id')),)
         else:
-            cursor.execute(self.query, json.dumps(query), k)
+            cursor.execute(self.vector_query, json.dumps(query), k)
         rows = cursor.fetchall()
         res = [row.id for row in rows]
         return res
