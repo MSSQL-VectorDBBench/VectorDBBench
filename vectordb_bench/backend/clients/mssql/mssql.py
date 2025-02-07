@@ -30,6 +30,8 @@ class MSSQL(VectorDB):
 
         log.info("db_case_config: " + str(db_case_config))
 
+        log.info(self.db_config['connection_string'] + ';LongAsMax=yes;')
+
         log.info(f"Connecting to MSSQL... here")
         #log.info(self.db_config['connection_string'])
         cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;')     
@@ -94,12 +96,14 @@ class MSSQL(VectorDB):
         cnxn = pyodbc.connect(self.db_config['connection_string'] + ';LongAsMax=yes;')     
         self.cnxn = cnxn    
         cnxn.autocommit = True
+        log.info("init")
         self.cursor = cnxn.cursor()
         self.first_run = True
 
         try:
             yield
         finally: 
+            log.info("Finally")
             self.cursor.close()
             self.cnxn.close()
             self.cursor = None
@@ -165,9 +169,14 @@ class MSSQL(VectorDB):
         metric_function = 'euclidean' #search_param["metric"]
         #efSearch = search_param["efSearch"]
         #log.info(f'Query top:{k} metric:{metric_fun} filters:{filters} params: {search_param} timeout:{timeout}...')
-        cursor = self.cursor
+        #cursor = self.cursor
+
+        """
+        First Run
+        """
         if self.first_run == True:
             self.first_run = False
+            log.info("Preparing Statement")
             self.vector_query = f"""
                 declare @v vector({self.dim}) = ?;
                 select t.id from vector_search(
@@ -175,17 +184,68 @@ class MSSQL(VectorDB):
                     column = [vector],
                     similar_to = @v,
                     metric = '{metric_function}', 
-                    top_n = ?
+                    top_n = 100
                 ) AS s
                 order by t.id 
             """
-        print(id(self.vector_query))
-        if filters:
-            cursor.execute(self.vector_query, json.dumps(query), k, int(filters.get('id')),)
-        else:
-            cursor.execute(self.vector_query, json.dumps(query), k)
-        rows = cursor.fetchall()
-        res = [row.id for row in rows]
-        return res
+            self.vector_query = f"""
+               declare @v vector(768) = ?;
+               select @v as id
+            """
+            #self.vector = query
+            #self.hndl = self.cursor.prepareStatement('SELECT 1 as id')
+            #self.hndl = self.cursor.prepareStatement('SELECT ? as id')
+            #self.hndl = self.cursor.prepareStatement(self.vector_query)
+
+
+        """
+        Execute for every invocation
+        """
+        # Integer
+        #cursor.executePreparedStatement(self.hndl, 1) 
+        #self.cursor.executePreparedStatement(self.hndl)
         
+        #Small Vector
+        #log.info(type(query[1:2]))
+        #log.info(type(query))
+        
+
+        #cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
+        #cursor.fetchall()
+        #cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
+ 
+        # Other Small Vector Handles
+        #cursor.executePreparedStatement(self.hndl,'[1]')
+        #cursor.executePreparedStatement(self.hndl,json.dumps( '[1]'))
+        #cursor.executePreparedStatement(self.hndl,([1]))
+        
+        #lst: list[float] = [query[1]]
+        #log.info(query[1])
+        """
+        lst_orig: list[float] = [0.2358749359846115, 2.5]
+        val: float = lst_orig[1] #query[1]#0.2358749359846115
+        lst: list[float] = query#[val]
+        log.info(str(id(lst)) + " " + str(id(query)))
+        """
+        #self.cursor.executePreparedStatement(self.hndl, json.dumps(query))
+        #log.info(type(lst))
+        #self.vector = query 
+
+        #self.cursor.executePreparedStatement(self.hndl, json.dumps(query))
+        #self.cursor.executePreparedStatement(self.hndl, json.dumps(self.vector))
+       
+        # The Query we want
+        #cursor.executePreparedStatement(self.hndl, json.dumps(query))
+       
+        # The Query we want, again 
+        #cursor.executePreparedStatement(self.hndl, json.dumps(query))
+        log.info("End Search")
+        return [1]
+        """ 
+        #quit()
+        rows = self.cursor.fetchall()
+        res = [row.id for row in rows]
+        #log.info(str(res))
+        return res
+        """
         
