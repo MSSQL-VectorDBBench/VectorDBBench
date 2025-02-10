@@ -63,9 +63,9 @@ class MultiProcessingSearchRunner:
             while time.perf_counter() < start_time + self.duration:
                 s = time.perf_counter()
                 try:
-                    lst = test_data[idx]
+                    #lst = test_data[idx]
                     self.db.search_embedding(
-                        lst,
+                        test_data[idx],
                         self.k,
                         self.filters,
                     )
@@ -78,9 +78,9 @@ class MultiProcessingSearchRunner:
                 count += 1
                 # loop through the test data
                 idx = idx + 1 if idx < num - 1 else 0
-
+                #log.info(count)
                 if count % 500 == 0:
-                    log.info(
+                    log.debug(
                         f"({mp.current_process().name:16}) ",
                         f"search_count: {count}, latest_latency={time.perf_counter()-s}",
                     )
@@ -250,6 +250,7 @@ class MultiProcessingSearchRunner:
     ) -> int:
         # sync all process
         q.put(1)
+        log.info("search_by_dur")
         with cond:
             cond.wait()
 
@@ -274,9 +275,9 @@ class MultiProcessingSearchRunner:
                 count += 1
                 # loop through the test data
                 idx = idx + 1 if idx < num - 1 else 0
-
+                log.info(count)
                 if count % 500 == 0:
-                    log.info(
+                    log.debug(
                         f"({mp.current_process().name:16}) search_count: {count}, ",
                         f"latest_latency={time.perf_counter()-s}",
                     )

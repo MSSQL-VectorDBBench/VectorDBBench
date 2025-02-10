@@ -188,29 +188,32 @@ class MSSQL(VectorDB):
                 ) AS s
                 order by t.id 
             """
-            self.vector_query = f"""
-               declare @v vector(768) = ?;
-               select @v as id
-            """
+            #self.vector_query = f"""
+            #   declare @v vector(1) = ?;
+            #   select @v as id
+            #"""
             #self.vector = query
             #self.hndl = self.cursor.prepareStatement('SELECT 1 as id')
             #self.hndl = self.cursor.prepareStatement('SELECT ? as id')
-            #self.hndl = self.cursor.prepareStatement(self.vector_query)
+            self.hndl = self.cursor.prepareStatement(self.vector_query)
 
 
         """
         Execute for every invocation
         """
         # Integer
-        #cursor.executePreparedStatement(self.hndl, 1) 
+        #self.cursor.executePreparedStatement(self.hndl, 1)
+        #log.info(self.cursor.fetchall()) 
         #self.cursor.executePreparedStatement(self.hndl)
-        
+        #self.cursor.executePreparedStatement(self.hndl, 2) 
+        #log.info(self.cursor.fetchall()) 
+        #
         #Small Vector
         #log.info(type(query[1:2]))
         #log.info(type(query))
         
 
-        #cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
+        #self.cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
         #cursor.fetchall()
         #cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
  
@@ -227,7 +230,7 @@ class MSSQL(VectorDB):
         lst: list[float] = query#[val]
         log.info(str(id(lst)) + " " + str(id(query)))
         """
-        #self.cursor.executePreparedStatement(self.hndl, json.dumps(query))
+        #self.cursor.executePreparedStatement(self.hndl, json.dumps(query[1:2]))
         #log.info(type(lst))
         #self.vector = query 
 
@@ -235,17 +238,16 @@ class MSSQL(VectorDB):
         #self.cursor.executePreparedStatement(self.hndl, json.dumps(self.vector))
        
         # The Query we want
-        #cursor.executePreparedStatement(self.hndl, json.dumps(query))
+        self.cursor.executePreparedStatement(self.hndl, json.dumps(query))
        
+        #What we are compaing against
+        #self.cursor.execute(self.vector_query, json.dumps(query))
         # The Query we want, again 
         #cursor.executePreparedStatement(self.hndl, json.dumps(query))
-        log.info("End Search")
-        return [1]
-        """ 
+        #log.info("End Search")
         #quit()
         rows = self.cursor.fetchall()
         res = [row.id for row in rows]
-        #log.info(str(res))
+        #log.info(str(query[1:2]) + " " + str(res))
         return res
-        """
         
