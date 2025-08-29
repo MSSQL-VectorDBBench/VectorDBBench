@@ -32,6 +32,11 @@ class MSSQLTypedDict(CommonTypedDict):
         str,
         click.option("--entraid", type=str, help="Entra Id Authentication", required=False),
     ]
+    CreateIndexDOP: Annotated[
+        int,
+        click.option("--createindexdop", type=int, help="DOP Used for CREATE VECTOR INDEX", required=False),
+    ]
+
 
 
 
@@ -47,7 +52,8 @@ def MSSQL(**parameters: Unpack[MSSQLTypedDict]):
             database=parameters["database"],
             uid=parameters["uid"],
             pwd=parameters["pwd"],
-            entraid=parameters["entraid"]
+            entraid=parameters["entraid"],
+            createindexdop=parameters["createindexdop"]
         ),
         db_case_config=MSSQLVectorIndexConfig(
 

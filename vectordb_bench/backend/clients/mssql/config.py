@@ -8,13 +8,9 @@ MSSQL_CONNECTION_STRING_PLACEHOLDER="DRIVER={ODBC Driver 18 for SQL Server};SERV
 
 MSSQL_ENTRA_CONNECTION_STRING_PLACEHOLDER="DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;AUTHENTICATION=ActiveDirectoryMsi;UID=%s;LongAsMax=yes;Connect Timeout=30;Encrypt=yes;TrustServerCertificate=Yes"
 
-#MSSQL_ENTRA_CONNECTION_STRING_PLACEHOLDER="DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;AUTHENTICATION=ActiveDirectoryServicePrincipal;UID=%s;PWD=%s;LongAsMax=yes;Connect Timeout=30;Encrypt=yes;TrustServerCertificate=No"
-
 # --- Constants for Token Authentication ---
 SQL_COPT_SS_ACCESS_TOKEN = 1256 
 SQL_SERVER_TOKEN_SCOPE = "https://database.windows.net/.default"
-
-# --- Your Modified MSSQLConfig Class ---
 
 class MSSQLConfig(DBConfig):
     server: str
@@ -22,6 +18,8 @@ class MSSQLConfig(DBConfig):
     uid: Optional[str] = None
     pwd: Optional[SecretStr] = None
     entraid: Optional[str] = None
+    CreateIndexDOP: Optional[int] = 0
+
 
     def to_dict(self) -> dict:
         """
@@ -45,7 +43,10 @@ class MSSQLConfig(DBConfig):
                 "Encrypt=yes;"
                 "TrustServerCertificate=Yes"
             )
-            return {"connection_string": connection_string}
+            return {
+                "connection_string": connection_string,
+                "CreateIndexDOP": self.CreateIndexDOP
+            }
 
         # --- Case 2: Entra ID Managed Identity (Manual Token Auth) ---
         print(f"Attempting to get token for User-Assigned Identity: {self.entraid}")
@@ -74,13 +75,15 @@ class MSSQLConfig(DBConfig):
         # 4. Return both the string and the token attributes
         return {
             "connection_string": connection_string,
-            "attrs_before": {SQL_COPT_SS_ACCESS_TOKEN: token_struct}
+            "attrs_before": {SQL_COPT_SS_ACCESS_TOKEN: token_struct},
+            "CreateIndexDOP": self.CreateIndexDOP
         }
 
 
 class MSSQLVectorIndexConfig(BaseModel, DBCaseConfig):
     metric_type: MetricType | None = None
     efSearch: int | None = 48
+    CreateIndexDOP: int | None = 0
 
     def parse_metric(self) -> str: 
         if self.metric_type == MetricType.L2:
@@ -92,11 +95,13 @@ class MSSQLVectorIndexConfig(BaseModel, DBCaseConfig):
     def index_param(self) -> dict:
         return {
             "lists" : self.lists,
-            "metric" : self.parse_metric()
+            "metric" : self.parse_metric(),
+            "CreateIndexDOP": self.CreateIndexDOP
         }
     
     def search_param(self) -> dict:
         return {
             "efSearch" : self.efSearch,
-            "metric" : self.parse_metric()
+            "metric" : self.parse_metric(),
+            "CreateIndexDOP": self.CreateIndexDOP
         }
